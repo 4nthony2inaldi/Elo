@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from './AuthProvider';
 import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
@@ -37,9 +38,13 @@ export default function LoginPage() {
         <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
           {/* Logo/Brand */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-electric-blue to-sea-blue rounded-2xl mb-4">
-              <span className="text-white font-bold text-2xl">S</span>
-            </div>
+            <Image
+              src="/images/Yext_Logo_SQUARE.svg"
+              alt="Yext"
+              width={64}
+              height={64}
+              className="mx-auto mb-4 rounded-2xl"
+            />
             <h1 className="text-2xl font-semibold text-midnight">
               Scout <span className="text-electric-blue">Analysis</span>
             </h1>
@@ -134,10 +139,14 @@ export default function LoginPage() {
         </div>
 
         {/* Powered by */}
-        <div className="text-center mt-6">
-          <p className="text-white/60 text-sm">
-            Powered by <span className="text-white font-medium">Yext</span>
-          </p>
+        <div className="text-center mt-6 flex items-center justify-center gap-2">
+          <span className="text-white/60 text-sm">Powered by</span>
+          <Image
+            src="/images/Yext_Logo_White.svg"
+            alt="Yext"
+            width={28}
+            height={28}
+          />
         </div>
       </div>
     </div>

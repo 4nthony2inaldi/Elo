@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import {
   FileText,
   Building2,
@@ -402,9 +403,13 @@ function IndustryReportTemplate({ data }: { data: ReturnType<typeof Object> | nu
           <p className="text-midnight/60 mt-1">{d.sector} Sector</p>
         </div>
         <div className="text-right">
-          <div className="w-12 h-12 bg-gradient-to-br from-electric-blue to-sea-blue rounded-xl flex items-center justify-center mb-2 ml-auto">
-            <span className="text-white font-bold text-xl">Y</span>
-          </div>
+          <Image
+            src="/images/Yext_Logo_SQUARE.svg"
+            alt="Yext"
+            width={48}
+            height={48}
+            className="mb-2 ml-auto rounded-xl"
+          />
           <p className="text-xs text-midnight/40">Powered by Yext Scout</p>
         </div>
       </div>
@@ -529,9 +534,13 @@ function ClientReportTemplate({ data }: { data: ReturnType<typeof getBrandCompar
           <p className="text-midnight/60 mt-1">{data.brand.industry} • {data.brand.locationCount.toLocaleString()} locations</p>
         </div>
         <div className="text-right">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-2 ml-auto">
-            <CheckCircle2 className="w-6 h-6 text-white" />
-          </div>
+          <Image
+            src="/images/Yext_Logo_SQUARE.svg"
+            alt="Yext"
+            width={48}
+            height={48}
+            className="mb-2 ml-auto rounded-xl"
+          />
           <p className="text-xs text-midnight/40">Yext Customer</p>
         </div>
       </div>
@@ -660,9 +669,13 @@ function ProspectReportTemplate({ data }: { data: ReturnType<typeof Object> | nu
           <p className="text-midnight/60 mt-1">{d.industry}</p>
         </div>
         <div className="text-right">
-          <div className="w-12 h-12 bg-gradient-to-br from-coral to-red-500 rounded-xl flex items-center justify-center mb-2 ml-auto">
-            <Target className="w-6 h-6 text-white" />
-          </div>
+          <Image
+            src="/images/Yext_Logo_SQUARE.svg"
+            alt="Yext"
+            width={48}
+            height={48}
+            className="mb-2 ml-auto rounded-xl"
+          />
           <p className="text-xs text-midnight/40">Opportunity Analysis</p>
         </div>
       </div>

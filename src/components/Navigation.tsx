@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Search,
   BarChart3,
   FileText,
-  Compass,
   Building2,
   Presentation
 } from 'lucide-react';
@@ -29,9 +29,13 @@ export default function Navigation() {
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-electric-blue flex items-center justify-center">
-            <Compass className="w-6 h-6 text-white" />
-          </div>
+          <Image
+            src="/images/Yext_Logo_White.svg"
+            alt="Yext"
+            width={40}
+            height={40}
+            className="w-10 h-10"
+          />
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Scout</h1>
             <p className="text-xs text-white/60 tracking-wide">by Yext</p>
