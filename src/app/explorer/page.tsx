@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { Sector, DistanceBucket, BrandSize } from '@/types';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Sector, DistanceBucket, BrandSize, BrandMetrics } from '@/types';
 import {
   SECTORS,
   DISTANCE_BUCKETS,
@@ -13,6 +13,7 @@ import {
   getAvailableKeywords,
   industryMetrics,
 } from '@/data/mockData';
+import { searchBrands, brands } from '@/data/brands';
 import MetricCard from '@/components/MetricCard';
 import ComparisonBar from '@/components/ComparisonBar';
 import {
@@ -38,8 +39,15 @@ export default function Explorer() {
   const [selectedDistances, setSelectedDistances] = useState<DistanceBucket[]>([]);
   const [selectedBrandSize, setSelectedBrandSize] = useState<BrandSize | 'all'>('all');
 
+  // Brand filter state
+  const [selectedBrand, setSelectedBrand] = useState<BrandMetrics | null>(null);
+  const [brandSearchQuery, setBrandSearchQuery] = useState('');
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const brandSearchRef = useRef<HTMLDivElement>(null);
+
   // Expanded sections
   const [expandedSections, setExpandedSections] = useState({
+    brand: false,
     sector: true,
     industry: false,
     subIndustry: false,
@@ -63,6 +71,23 @@ export default function Explorer() {
     () => getAvailableKeywords(selectedSectors, selectedIndustries, selectedSubIndustries),
     [selectedSectors, selectedIndustries, selectedSubIndustries]
   );
+
+  // Brand search results
+  const brandSearchResults = useMemo(() => {
+    if (!brandSearchQuery.trim()) return [];
+    return searchBrands(brandSearchQuery).slice(0, 8);
+  }, [brandSearchQuery]);
+
+  // Close brand dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (brandSearchRef.current && !brandSearchRef.current.contains(event.target as Node)) {
+        setShowBrandDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Clear downstream selections when upstream changes
   useEffect(() => {
@@ -142,6 +167,8 @@ export default function Explorer() {
   };
 
   const clearAllFilters = () => {
+    setSelectedBrand(null);
+    setBrandSearchQuery('');
     setSelectedSectors([]);
     setSelectedIndustries([]);
     setSelectedSubIndustries([]);
@@ -150,7 +177,19 @@ export default function Explorer() {
     setSelectedBrandSize('all');
   };
 
+  const selectBrand = (brand: BrandMetrics) => {
+    setSelectedBrand(brand);
+    setBrandSearchQuery('');
+    setShowBrandDropdown(false);
+  };
+
+  const clearBrand = () => {
+    setSelectedBrand(null);
+    setBrandSearchQuery('');
+  };
+
   const hasFilters =
+    selectedBrand !== null ||
     selectedSectors.length > 0 ||
     selectedIndustries.length > 0 ||
     selectedSubIndustries.length > 0 ||
@@ -160,6 +199,7 @@ export default function Explorer() {
 
   // Active filter count
   const activeFilterCount =
+    (selectedBrand ? 1 : 0) +
     selectedSectors.length +
     selectedIndustries.length +
     selectedSubIndustries.length +
@@ -192,6 +232,76 @@ export default function Explorer() {
           )}
         </div>
 
+        {/* Brand Filter */}
+        <div className="mb-4">
+          <button
+            onClick={() => toggleSection('brand')}
+            className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-mist/50"
+          >
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-electric-blue" />
+              <span className="font-medium text-sm">Brand</span>
+              {selectedBrand && (
+                <span className="bg-electric-blue text-white text-xs px-1.5 py-0.5 rounded">
+                  1
+                </span>
+              )}
+            </div>
+            {expandedSections.brand ? (
+              <ChevronDown className="w-4 h-4 text-midnight/40" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-midnight/40" />
+            )}
+          </button>
+          {expandedSections.brand && (
+            <div className="mt-2 pl-2" ref={brandSearchRef}>
+              {selectedBrand ? (
+                <div className="flex items-center justify-between p-2 bg-frost-blue rounded-lg">
+                  <div>
+                    <p className="font-medium text-sea-blue text-sm">{selectedBrand.brandName}</p>
+                    <p className="text-xs text-sea-blue/70">{selectedBrand.industry}</p>
+                  </div>
+                  <button
+                    onClick={clearBrand}
+                    className="text-sea-blue/60 hover:text-coral"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-midnight/40" />
+                  <input
+                    type="text"
+                    placeholder="Search brands..."
+                    value={brandSearchQuery}
+                    onChange={(e) => {
+                      setBrandSearchQuery(e.target.value);
+                      setShowBrandDropdown(true);
+                    }}
+                    onFocus={() => setShowBrandDropdown(true)}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-mist rounded-lg focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-electric-blue"
+                  />
+                  {showBrandDropdown && brandSearchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-mist rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                      {brandSearchResults.map((brand) => (
+                        <button
+                          key={brand.brandName}
+                          onClick={() => selectBrand(brand)}
+                          className="w-full text-left px-3 py-2 hover:bg-mist/50 first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          <p className="font-medium text-sm text-midnight">{brand.brandName}</p>
+                          <p className="text-xs text-midnight/60">{brand.industry} • {brand.isYext ? 'Yext' : 'Non-Yext'}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Sector Filter */}
         <div className="mb-4">
           <button
@@ -199,7 +309,7 @@ export default function Explorer() {
             className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-mist/50"
           >
             <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-midnight/60" />
+              <Layers className="w-4 h-4 text-midnight/60" />
               <span className="font-medium text-sm">Sector</span>
               {selectedSectors.length > 0 && (
                 <span className="bg-frost-blue text-electric-blue text-xs px-1.5 py-0.5 rounded">
@@ -477,6 +587,14 @@ export default function Explorer() {
         {/* Active Filters Display */}
         {hasFilters && (
           <div className="mb-6 flex flex-wrap gap-2">
+            {selectedBrand && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-electric-blue text-white rounded-full text-sm font-medium">
+                {selectedBrand.brandName}
+                <button onClick={clearBrand} className="hover:text-frost-blue">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
             {selectedSectors.map(sector => (
               <span
                 key={sector}
@@ -532,6 +650,50 @@ export default function Explorer() {
                 </button>
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Brand Info Card */}
+        {selectedBrand && (
+          <div className="mb-6 bg-gradient-to-r from-electric-blue to-sea-blue rounded-2xl p-6 text-white">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    selectedBrand.isYext ? 'bg-white/20' : 'bg-white/10'
+                  }`}>
+                    {selectedBrand.isYext ? 'Yext Customer' : 'Non-Yext'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-xs bg-white/10">
+                    {selectedBrand.brandSize}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-semibold mb-1">{selectedBrand.brandName}</h2>
+                <p className="text-white/80">{selectedBrand.industry} • {selectedBrand.sector}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold">#{selectedBrand.avgRank.toFixed(1)}</p>
+                <p className="text-white/70 text-sm">Avg Rank</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-4 mt-6 pt-4 border-t border-white/20">
+              <div>
+                <p className="text-2xl font-semibold">{selectedBrand.locationCount.toLocaleString()}</p>
+                <p className="text-white/70 text-sm">Locations</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">{selectedBrand.avgCompleteness}%</p>
+                <p className="text-white/70 text-sm">Completeness</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">{(selectedBrand.top3Rate * 100).toFixed(1)}%</p>
+                <p className="text-white/70 text-sm">Top 3 Rate</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">{selectedBrand.totalAppearances.toLocaleString()}</p>
+                <p className="text-white/70 text-sm">Appearances</p>
+              </div>
+            </div>
           </div>
         )}
 

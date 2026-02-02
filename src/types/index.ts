@@ -133,3 +133,60 @@ export interface ProofPoint {
   category: string;
   filters: Partial<FilterState>;
 }
+
+// Brand-related types
+export interface Brand {
+  name: string;
+  sector: Sector;
+  industry: string;
+  subIndustry?: string;
+  locationCount: number;
+  brandSize: BrandSize;
+  isYext: boolean;
+}
+
+export interface BrandMetrics {
+  brandName: string;
+  sector: Sector;
+  industry: string;
+  brandSize: BrandSize;
+  isYext: boolean;
+  locationCount: number;
+  avgRank: number;
+  avgCompleteness: number;
+  top3Rate: number;
+  totalAppearances: number;
+  // Scan search IDs where this brand appeared (for competitive set)
+  scanSearchIds: string[];
+}
+
+export interface BrandComparison {
+  brand: BrandMetrics;
+  // Industry peer comparison
+  industryPeers: {
+    avgRank: number;
+    avgCompleteness: number;
+    top3Rate: number;
+    totalBrands: number;
+    brandRankPercentile: number; // e.g., 85 means top 15%
+    brandCompletenessPercentile: number;
+    brandTop3Percentile: number;
+  };
+  // Competitive set comparison (same scan searches)
+  competitiveSet: {
+    avgRank: number;
+    avgCompleteness: number;
+    top3Rate: number;
+    totalBrands: number;
+    brandRankPercentile: number;
+    brandCompletenessPercentile: number;
+    brandTop3Percentile: number;
+    // Top competitors that appear in same searches
+    topCompetitors: {
+      brandName: string;
+      avgRank: number;
+      avgCompleteness: number;
+      overlapPercent: number; // % of searches they both appear in
+    }[];
+  };
+}

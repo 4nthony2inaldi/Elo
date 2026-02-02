@@ -7,12 +7,14 @@ import {
   Search,
   BarChart3,
   FileText,
-  Compass
+  Compass,
+  Building2
 } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/explorer', label: 'Explorer', icon: Search },
+  { href: '/brands', label: 'Brand Lookup', icon: Building2 },
   { href: '/benchmarks', label: 'Benchmarks', icon: BarChart3 },
   { href: '/proof-points', label: 'Proof Points', icon: FileText },
 ];
