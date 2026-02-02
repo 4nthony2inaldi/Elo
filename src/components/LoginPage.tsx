@@ -16,10 +16,7 @@ export default function LoginPage() {
     setError(false);
     setIsLoading(true);
 
-    // Small delay for UX
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const success = login(password);
+    const success = await login(password);
     if (!success) {
       setError(true);
       setPassword('');

@@ -4,18 +4,17 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
+  login: (password: string) => Promise<boolean>;
   logout: () => void;
+  isLoggingIn: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Password is checked client-side - this is for internal tools, not high-security
-const SITE_PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD || 'scout2024';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     // Check if already authenticated in this session
@@ -26,13 +25,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = (password: string): boolean => {
-    if (password === SITE_PASSWORD) {
-      sessionStorage.setItem('scout_authenticated', 'true');
-      setIsAuthenticated(true);
-      return true;
+  const login = async (password: string): Promise<boolean> => {
+    setIsLoggingIn(true);
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        sessionStorage.setItem('scout_authenticated', 'true');
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      setIsLoggingIn(false);
     }
-    return false;
   };
 
   const logout = () => {
@@ -49,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, isLoggingIn }}>
       {children}
     </AuthContext.Provider>
   );
