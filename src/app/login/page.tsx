@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useAuth } from './AuthProvider';
+import { useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
@@ -17,12 +17,29 @@ export default function LoginPage() {
     setError(false);
     setIsLoading(true);
 
-    const success = await login(password);
-    if (!success) {
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Redirect to home page - cookie is set by server
+        router.push('/');
+        router.refresh();
+      } else {
+        setError(true);
+        setPassword('');
+      }
+    } catch {
       setError(true);
       setPassword('');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (

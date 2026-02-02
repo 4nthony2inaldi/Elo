@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Search,
   BarChart3,
   FileText,
   Building2,
-  Presentation
+  Presentation,
+  LogOut
 } from 'lucide-react';
 
 const navItems = [
@@ -23,6 +24,13 @@ const navItems = [
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch('/api/auth', { method: 'DELETE' });
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <nav className="fixed top-0 left-0 h-screen w-64 bg-midnight text-snow flex flex-col">
@@ -71,6 +79,13 @@ export default function Navigation() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/10">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 mb-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm">Sign Out</span>
+        </button>
         <div className="text-xs text-white/40 text-center">
           <p>Powered by Elo Rankings</p>
           <p className="mt-1">~19.6M results analyzed</p>

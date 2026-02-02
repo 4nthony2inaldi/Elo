@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Navigation from '@/components/Navigation';
-import { AuthProvider } from '@/components/AuthProvider';
-import AuthGate from '@/components/AuthGate';
 
 export const metadata: Metadata = {
   title: 'Scout Analysis Tool | Yext',
@@ -17,14 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-mist min-h-screen">
-        <AuthProvider>
-          <AuthGate>
-            <Navigation />
-            <main className="ml-64 min-h-screen">
-              {children}
-            </main>
-          </AuthGate>
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );
