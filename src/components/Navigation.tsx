@@ -8,7 +8,8 @@ import {
   BarChart3,
   FileText,
   Compass,
-  Building2
+  Building2,
+  Presentation
 } from 'lucide-react';
 
 const navItems = [
@@ -17,6 +18,7 @@ const navItems = [
   { href: '/brands', label: 'Brand Lookup', icon: Building2 },
   { href: '/benchmarks', label: 'Benchmarks', icon: BarChart3 },
   { href: '/proof-points', label: 'Proof Points', icon: FileText },
+  { href: '/reports', label: 'Reports', icon: Presentation },
 ];
 
 export default function Navigation() {
