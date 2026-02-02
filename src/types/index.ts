@@ -17,8 +17,41 @@ export type BrandSize = 'Single Location' | 'Regional (2-49)' | 'National (50+)'
 
 export type Competitiveness = 'Uncompetitive' | 'Standard' | 'Competitive' | 'Ultra Competitive';
 
+// Hierarchy: Sector > Industry > SubIndustry > Keyword
+export interface Industry {
+  name: string;
+  sector: Sector;
+}
+
+export interface SubIndustry {
+  name: string;
+  industry: string;
+  sector: Sector;
+}
+
+export interface Keyword {
+  name: string;
+  subIndustry: string;
+  industry: string;
+  sector: Sector;
+}
+
+export interface HierarchyNode {
+  sector: Sector;
+  industries: {
+    name: string;
+    subIndustries: {
+      name: string;
+      keywords: string[];
+    }[];
+  }[];
+}
+
 export interface AggregatedMetrics {
   sector: Sector;
+  industry?: string;
+  subIndustry?: string;
+  keyword?: string;
   distanceBucket: DistanceBucket;
   yextStatus: YextStatus;
   resultCount: number;
@@ -44,6 +77,19 @@ export interface SectorMetrics {
   top3RateNonYext: number;
 }
 
+export interface IndustryMetrics {
+  sector: Sector;
+  industry: string;
+  totalResults: number;
+  uniqueBusinesses: number;
+  avgRankYext: number;
+  avgRankNonYext: number;
+  rankAdvantage: number;
+  avgCompletenessYext: number;
+  avgCompletenessNonYext: number;
+  completenessGap: number;
+}
+
 export interface DistanceMetrics {
   distanceBucket: DistanceBucket;
   yextAvgRank: number;
@@ -62,6 +108,8 @@ export interface BrandSizeMetrics {
 
 export interface BenchmarkData {
   sector: Sector;
+  industry?: string;
+  subIndustry?: string;
   distanceBucket: DistanceBucket;
   competitiveness: Competitiveness;
   avgTop3Completeness: number;
@@ -72,6 +120,9 @@ export interface BenchmarkData {
 
 export interface FilterState {
   sectors: Sector[];
+  industries: string[];
+  subIndustries: string[];
+  keywords: string[];
   distanceBuckets: DistanceBucket[];
   brandSizes: BrandSize[];
   yextStatus: YextStatus | 'all';

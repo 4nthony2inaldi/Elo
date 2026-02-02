@@ -4,12 +4,14 @@ import {
   DistanceMetrics,
   BrandSizeMetrics,
   BenchmarkData,
+  IndustryMetrics,
   Sector,
   DistanceBucket,
   YextStatus,
   BrandSize,
   Competitiveness
 } from '@/types';
+import { sectorHierarchy, getIndustriesForSector } from './hierarchy';
 
 // Sectors
 export const SECTORS: Sector[] = [
@@ -61,64 +63,134 @@ export const overallMetrics = {
   top3RateNonYext: 0.124,
 };
 
-// Aggregated metrics by sector, distance, and Yext status
-export const aggregatedMetrics: AggregatedMetrics[] = [
-  // Retail
-  { sector: 'Retail', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 1850000, uniqueBusinesses: 245000, avgRank: 7.8, avgCompleteness: 81.2, top3Rate: 0.198 },
-  { sector: 'Retail', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 4200000, uniqueBusinesses: 890000, avgRank: 10.9, avgCompleteness: 52.8, top3Rate: 0.132 },
-  { sector: 'Retail', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 980000, uniqueBusinesses: 178000, avgRank: 8.4, avgCompleteness: 79.8, top3Rate: 0.175 },
-  { sector: 'Retail', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 2100000, uniqueBusinesses: 520000, avgRank: 11.8, avgCompleteness: 51.2, top3Rate: 0.118 },
-  { sector: 'Retail', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 420000, uniqueBusinesses: 95000, avgRank: 9.2, avgCompleteness: 77.5, top3Rate: 0.152 },
-  { sector: 'Retail', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 890000, uniqueBusinesses: 285000, avgRank: 12.6, avgCompleteness: 49.8, top3Rate: 0.098 },
+// Base sector-level data
+const baseSectorData: Record<Sector, { yextRankBase: number; completenessBase: number; volumeMultiplier: number }> = {
+  'Retail': { yextRankBase: 7.8, completenessBase: 81, volumeMultiplier: 1.8 },
+  'Finance': { yextRankBase: 6.9, completenessBase: 85, volumeMultiplier: 0.8 },
+  'Business Services': { yextRankBase: 7.4, completenessBase: 77, volumeMultiplier: 0.7 },
+  'Food & Beverage': { yextRankBase: 8.2, completenessBase: 75, volumeMultiplier: 1.0 },
+  'Healthcare': { yextRankBase: 7.1, completenessBase: 83, volumeMultiplier: 0.9 },
+  'Hospitality': { yextRankBase: 7.5, completenessBase: 80, volumeMultiplier: 0.4 },
+  'Organizations': { yextRankBase: 7.8, completenessBase: 75, volumeMultiplier: 0.3 },
+};
 
-  // Finance
-  { sector: 'Finance', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 620000, uniqueBusinesses: 82000, avgRank: 6.9, avgCompleteness: 85.4, top3Rate: 0.224 },
-  { sector: 'Finance', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 1450000, uniqueBusinesses: 310000, avgRank: 10.2, avgCompleteness: 58.6, top3Rate: 0.145 },
-  { sector: 'Finance', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 340000, uniqueBusinesses: 58000, avgRank: 7.6, avgCompleteness: 83.8, top3Rate: 0.198 },
-  { sector: 'Finance', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 720000, uniqueBusinesses: 185000, avgRank: 11.1, avgCompleteness: 56.2, top3Rate: 0.128 },
-  { sector: 'Finance', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 145000, uniqueBusinesses: 32000, avgRank: 8.4, avgCompleteness: 81.2, top3Rate: 0.168 },
-  { sector: 'Finance', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 320000, uniqueBusinesses: 98000, avgRank: 12.2, avgCompleteness: 53.8, top3Rate: 0.105 },
+// Generate aggregated metrics including industry level
+function generateAggregatedMetrics(): AggregatedMetrics[] {
+  const metrics: AggregatedMetrics[] = [];
 
-  // Business Services
-  { sector: 'Business Services', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 480000, uniqueBusinesses: 68000, avgRank: 7.4, avgCompleteness: 76.8, top3Rate: 0.205 },
-  { sector: 'Business Services', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 1180000, uniqueBusinesses: 275000, avgRank: 10.8, avgCompleteness: 51.4, top3Rate: 0.138 },
-  { sector: 'Business Services', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 265000, uniqueBusinesses: 48000, avgRank: 8.1, avgCompleteness: 74.5, top3Rate: 0.182 },
-  { sector: 'Business Services', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 590000, uniqueBusinesses: 162000, avgRank: 11.5, avgCompleteness: 49.8, top3Rate: 0.122 },
-  { sector: 'Business Services', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 112000, uniqueBusinesses: 26000, avgRank: 8.9, avgCompleteness: 72.2, top3Rate: 0.158 },
-  { sector: 'Business Services', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 248000, uniqueBusinesses: 85000, avgRank: 12.4, avgCompleteness: 47.5, top3Rate: 0.102 },
+  sectorHierarchy.forEach(sectorNode => {
+    const sector = sectorNode.sector;
+    const sectorBase = baseSectorData[sector];
 
-  // Food & Beverage
-  { sector: 'Food & Beverage', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 720000, uniqueBusinesses: 95000, avgRank: 8.2, avgCompleteness: 74.5, top3Rate: 0.178 },
-  { sector: 'Food & Beverage', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 1680000, uniqueBusinesses: 420000, avgRank: 11.6, avgCompleteness: 56.8, top3Rate: 0.125 },
-  { sector: 'Food & Beverage', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 395000, uniqueBusinesses: 68000, avgRank: 8.9, avgCompleteness: 72.8, top3Rate: 0.158 },
-  { sector: 'Food & Beverage', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 840000, uniqueBusinesses: 248000, avgRank: 12.2, avgCompleteness: 54.2, top3Rate: 0.112 },
-  { sector: 'Food & Beverage', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 168000, uniqueBusinesses: 38000, avgRank: 9.6, avgCompleteness: 70.5, top3Rate: 0.142 },
-  { sector: 'Food & Beverage', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 365000, uniqueBusinesses: 125000, avgRank: 13.1, avgCompleteness: 52.1, top3Rate: 0.095 },
+    // Generate metrics for each industry
+    sectorNode.industries.forEach((industry, industryIndex) => {
+      // Add some variation by industry
+      const industryVariation = (industryIndex % 3 - 1) * 0.3;
 
-  // Healthcare
-  { sector: 'Healthcare', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 580000, uniqueBusinesses: 78000, avgRank: 7.1, avgCompleteness: 82.8, top3Rate: 0.218 },
-  { sector: 'Healthcare', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 1320000, uniqueBusinesses: 345000, avgRank: 10.4, avgCompleteness: 55.2, top3Rate: 0.142 },
-  { sector: 'Healthcare', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 318000, uniqueBusinesses: 55000, avgRank: 7.8, avgCompleteness: 80.5, top3Rate: 0.195 },
-  { sector: 'Healthcare', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 685000, uniqueBusinesses: 205000, avgRank: 11.2, avgCompleteness: 53.5, top3Rate: 0.125 },
-  { sector: 'Healthcare', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 135000, uniqueBusinesses: 30000, avgRank: 8.5, avgCompleteness: 78.2, top3Rate: 0.172 },
-  { sector: 'Healthcare', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 298000, uniqueBusinesses: 102000, avgRank: 12.0, avgCompleteness: 51.8, top3Rate: 0.108 },
+      // Generate metrics for each sub-industry
+      industry.subIndustries.forEach((subIndustry, subIndex) => {
+        const subVariation = (subIndex % 4 - 1.5) * 0.2;
 
-  // Hospitality
-  { sector: 'Hospitality', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 285000, uniqueBusinesses: 42000, avgRank: 7.5, avgCompleteness: 79.5, top3Rate: 0.195 },
-  { sector: 'Hospitality', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 680000, uniqueBusinesses: 168000, avgRank: 10.6, avgCompleteness: 58.2, top3Rate: 0.138 },
-  { sector: 'Hospitality', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 158000, uniqueBusinesses: 30000, avgRank: 8.2, avgCompleteness: 77.8, top3Rate: 0.175 },
-  { sector: 'Hospitality', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 345000, uniqueBusinesses: 98000, avgRank: 11.4, avgCompleteness: 55.8, top3Rate: 0.118 },
-  { sector: 'Hospitality', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 68000, uniqueBusinesses: 16000, avgRank: 8.9, avgCompleteness: 75.5, top3Rate: 0.155 },
-  { sector: 'Hospitality', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 148000, uniqueBusinesses: 52000, avgRank: 12.1, avgCompleteness: 53.2, top3Rate: 0.098 },
+        // Generate for each distance bucket and yext status
+        DISTANCE_BUCKETS.forEach(distanceBucket => {
+          const distanceModifier =
+            distanceBucket === 'Within 1 mile' ? 0 :
+            distanceBucket === '1-3 miles' ? 0.6 : 1.2;
 
-  // Organizations
-  { sector: 'Organizations', distanceBucket: 'Within 1 mile', yextStatus: 'Yext', resultCount: 165000, uniqueBusinesses: 28000, avgRank: 7.8, avgCompleteness: 75.2, top3Rate: 0.185 },
-  { sector: 'Organizations', distanceBucket: 'Within 1 mile', yextStatus: 'Not Yext', resultCount: 420000, uniqueBusinesses: 115000, avgRank: 11.0, avgCompleteness: 52.5, top3Rate: 0.128 },
-  { sector: 'Organizations', distanceBucket: '1-3 miles', yextStatus: 'Yext', resultCount: 92000, uniqueBusinesses: 19000, avgRank: 8.5, avgCompleteness: 73.5, top3Rate: 0.165 },
-  { sector: 'Organizations', distanceBucket: '1-3 miles', yextStatus: 'Not Yext', resultCount: 215000, uniqueBusinesses: 68000, avgRank: 11.7, avgCompleteness: 50.2, top3Rate: 0.112 },
-  { sector: 'Organizations', distanceBucket: '3-5 miles', yextStatus: 'Yext', resultCount: 40000, uniqueBusinesses: 10000, avgRank: 9.1, avgCompleteness: 71.2, top3Rate: 0.148 },
-  { sector: 'Organizations', distanceBucket: '3-5 miles', yextStatus: 'Not Yext', resultCount: 92000, uniqueBusinesses: 35000, avgRank: 12.5, avgCompleteness: 48.5, top3Rate: 0.092 },
-];
+          // Volume decreases with distance
+          const distanceVolumeMultiplier =
+            distanceBucket === 'Within 1 mile' ? 1.0 :
+            distanceBucket === '1-3 miles' ? 0.5 : 0.25;
+
+          // Yext metrics
+          const baseYextVolume = Math.floor(50000 * sectorBase.volumeMultiplier * distanceVolumeMultiplier);
+          metrics.push({
+            sector,
+            industry: industry.name,
+            subIndustry: subIndustry.name,
+            distanceBucket,
+            yextStatus: 'Yext',
+            resultCount: baseYextVolume + Math.floor(Math.random() * 10000),
+            uniqueBusinesses: Math.floor(baseYextVolume * 0.15),
+            avgRank: Math.round((sectorBase.yextRankBase + distanceModifier + industryVariation + subVariation) * 10) / 10,
+            avgCompleteness: Math.round((sectorBase.completenessBase - distanceModifier * 2 + industryVariation * 2) * 10) / 10,
+            top3Rate: Math.round((0.2 - distanceModifier * 0.02 + industryVariation * 0.01) * 1000) / 1000,
+          });
+
+          // Non-Yext metrics
+          const baseNonYextVolume = Math.floor(150000 * sectorBase.volumeMultiplier * distanceVolumeMultiplier);
+          metrics.push({
+            sector,
+            industry: industry.name,
+            subIndustry: subIndustry.name,
+            distanceBucket,
+            yextStatus: 'Not Yext',
+            resultCount: baseNonYextVolume + Math.floor(Math.random() * 30000),
+            uniqueBusinesses: Math.floor(baseNonYextVolume * 0.2),
+            avgRank: Math.round((sectorBase.yextRankBase + 3.2 + distanceModifier + industryVariation + subVariation) * 10) / 10,
+            avgCompleteness: Math.round((sectorBase.completenessBase - 25 - distanceModifier * 2 + industryVariation * 2) * 10) / 10,
+            top3Rate: Math.round((0.13 - distanceModifier * 0.015 + industryVariation * 0.01) * 1000) / 1000,
+          });
+        });
+      });
+    });
+  });
+
+  return metrics;
+}
+
+export const aggregatedMetrics: AggregatedMetrics[] = generateAggregatedMetrics();
+
+// Industry-level metrics
+export function generateIndustryMetrics(): IndustryMetrics[] {
+  const industryMap = new Map<string, { sector: Sector; yextData: AggregatedMetrics[]; nonYextData: AggregatedMetrics[] }>();
+
+  aggregatedMetrics.forEach(m => {
+    if (!m.industry) return;
+    const key = `${m.sector}|${m.industry}`;
+    if (!industryMap.has(key)) {
+      industryMap.set(key, { sector: m.sector, yextData: [], nonYextData: [] });
+    }
+    const entry = industryMap.get(key)!;
+    if (m.yextStatus === 'Yext') {
+      entry.yextData.push(m);
+    } else {
+      entry.nonYextData.push(m);
+    }
+  });
+
+  const metrics: IndustryMetrics[] = [];
+  industryMap.forEach((data, key) => {
+    const [, industry] = key.split('|');
+    const yextTotal = data.yextData.reduce((sum, m) => sum + m.resultCount, 0);
+    const nonYextTotal = data.nonYextData.reduce((sum, m) => sum + m.resultCount, 0);
+
+    if (yextTotal === 0 || nonYextTotal === 0) return;
+
+    const avgRankYext = data.yextData.reduce((sum, m) => sum + m.avgRank * m.resultCount, 0) / yextTotal;
+    const avgRankNonYext = data.nonYextData.reduce((sum, m) => sum + m.avgRank * m.resultCount, 0) / nonYextTotal;
+    const avgCompletenessYext = data.yextData.reduce((sum, m) => sum + m.avgCompleteness * m.resultCount, 0) / yextTotal;
+    const avgCompletenessNonYext = data.nonYextData.reduce((sum, m) => sum + m.avgCompleteness * m.resultCount, 0) / nonYextTotal;
+
+    metrics.push({
+      sector: data.sector,
+      industry,
+      totalResults: yextTotal + nonYextTotal,
+      uniqueBusinesses: data.yextData.reduce((sum, m) => sum + m.uniqueBusinesses, 0) +
+                        data.nonYextData.reduce((sum, m) => sum + m.uniqueBusinesses, 0),
+      avgRankYext: Math.round(avgRankYext * 10) / 10,
+      avgRankNonYext: Math.round(avgRankNonYext * 10) / 10,
+      rankAdvantage: Math.round((avgRankNonYext - avgRankYext) * 10) / 10,
+      avgCompletenessYext: Math.round(avgCompletenessYext * 10) / 10,
+      avgCompletenessNonYext: Math.round(avgCompletenessNonYext * 10) / 10,
+      completenessGap: Math.round((avgCompletenessYext - avgCompletenessNonYext) * 10) / 10,
+    });
+  });
+
+  return metrics.sort((a, b) => b.rankAdvantage - a.rankAdvantage);
+}
+
+export const industryMetrics: IndustryMetrics[] = generateIndustryMetrics();
 
 // Sector-level summary metrics
 export const sectorMetrics: SectorMetrics[] = SECTORS.map(sector => {
@@ -219,17 +291,29 @@ SECTORS.forEach(sector => {
   });
 });
 
-// Helper function to filter and aggregate data
+// Extended filter function supporting hierarchy
+export interface HierarchyFilter {
+  sectors: Sector[];
+  industries: string[];
+  subIndustries: string[];
+  keywords: string[];
+  distanceBuckets: DistanceBucket[];
+}
+
 export function filterAggregatedData(
   sectors: Sector[],
   distanceBuckets: DistanceBucket[],
-  yextStatus: YextStatus | 'all'
+  yextStatus: YextStatus | 'all',
+  industries?: string[],
+  subIndustries?: string[]
 ): AggregatedMetrics[] {
   return aggregatedMetrics.filter(m => {
     const sectorMatch = sectors.length === 0 || sectors.includes(m.sector);
     const distanceMatch = distanceBuckets.length === 0 || distanceBuckets.includes(m.distanceBucket);
     const yextMatch = yextStatus === 'all' || m.yextStatus === yextStatus;
-    return sectorMatch && distanceMatch && yextMatch;
+    const industryMatch = !industries || industries.length === 0 || (m.industry && industries.includes(m.industry));
+    const subIndustryMatch = !subIndustries || subIndustries.length === 0 || (m.subIndustry && subIndustries.includes(m.subIndustry));
+    return sectorMatch && distanceMatch && yextMatch && industryMatch && subIndustryMatch;
   });
 }
 
@@ -272,4 +356,58 @@ export function computeComparisonMetrics(data: AggregatedMetrics[]) {
     top3RateNonYext: Math.round(top3RateNonYext * 1000) / 1000,
     top3Improvement: Math.round(((top3RateYext / top3RateNonYext) - 1) * 100),
   };
+}
+
+// Get available industries for selected sectors
+export function getAvailableIndustries(sectors: Sector[]): string[] {
+  if (sectors.length === 0) {
+    return sectorHierarchy.flatMap(s => s.industries.map(i => i.name));
+  }
+  return sectors.flatMap(sector => getIndustriesForSector(sector));
+}
+
+// Get available sub-industries for selected industries
+export function getAvailableSubIndustries(sectors: Sector[], industries: string[]): string[] {
+  const filteredHierarchy = sectors.length === 0
+    ? sectorHierarchy
+    : sectorHierarchy.filter(s => sectors.includes(s.sector));
+
+  const subIndustries: string[] = [];
+  filteredHierarchy.forEach(s => {
+    s.industries.forEach(i => {
+      if (industries.length === 0 || industries.includes(i.name)) {
+        i.subIndustries.forEach(sub => {
+          if (!subIndustries.includes(sub.name)) {
+            subIndustries.push(sub.name);
+          }
+        });
+      }
+    });
+  });
+  return subIndustries;
+}
+
+// Get available keywords for selected sub-industries
+export function getAvailableKeywords(sectors: Sector[], industries: string[], subIndustries: string[]): string[] {
+  const filteredHierarchy = sectors.length === 0
+    ? sectorHierarchy
+    : sectorHierarchy.filter(s => sectors.includes(s.sector));
+
+  const keywords: string[] = [];
+  filteredHierarchy.forEach(s => {
+    s.industries.forEach(i => {
+      if (industries.length === 0 || industries.includes(i.name)) {
+        i.subIndustries.forEach(sub => {
+          if (subIndustries.length === 0 || subIndustries.includes(sub.name)) {
+            sub.keywords.forEach(kw => {
+              if (!keywords.includes(kw)) {
+                keywords.push(kw);
+              }
+            });
+          }
+        });
+      }
+    });
+  });
+  return keywords;
 }
