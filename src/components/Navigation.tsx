@@ -11,7 +11,8 @@ import {
   Building2,
   Presentation,
   LogOut,
-  BookOpen
+  BookOpen,
+  CalendarClock
 } from 'lucide-react';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/benchmarks', label: 'Benchmarks', icon: BarChart3 },
   { href: '/proof-points', label: 'Proof Points', icon: FileText },
   { href: '/reports', label: 'Reports', icon: Presentation },
+  { href: '/monthly-report', label: 'Monthly Report', icon: CalendarClock },
   { href: '/methodology', label: 'Methodology', icon: BookOpen },
 ];
 
